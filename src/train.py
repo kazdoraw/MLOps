@@ -7,10 +7,11 @@ import joblib
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import (
     accuracy_score, precision_score, recall_score, f1_score,
-    classification_report, confusion_matrix
+    confusion_matrix, classification_report
 )
 from sklearn.pipeline import Pipeline
 
@@ -19,37 +20,22 @@ def load_params():
         params = yaml.safe_load(f)
     return params["train"]
 
-def plot_confusion_matrix(y_true, y_pred, labels, save_path):
-    cm = confusion_matrix(y_true, y_pred, labels=labels)
-    plt.figure(figsize=(10, 8))
-    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', 
-                xticklabels=labels, yticklabels=labels)
+def plot_confusion_matrix(y_true, y_pred, save_path="confusion_matrix.png"):
+    """
+    Создает и сохраняет матрицу ошибок.
+    """
+    cm = confusion_matrix(y_true, y_pred)
+    
+    plt.figure(figsize=(8, 6))
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', cbar=True)
     plt.title('Confusion Matrix')
     plt.ylabel('True Label')
     plt.xlabel('Predicted Label')
     plt.tight_layout()
     plt.savefig(save_path)
     plt.close()
+    
     print(f"Confusion matrix сохранена: {save_path}")
-
-def plot_feature_importance(model, save_path, top_n=20):
-    if hasattr(model.named_steps['clf'], 'feature_importances_'):
-        importances = model.named_steps['clf'].feature_importances_
-        feature_names = model.named_steps['tfidf'].get_feature_names_out()
-        
-        indices = importances.argsort()[-top_n:][::-1]
-        top_features = [feature_names[i] for i in indices]
-        top_importances = importances[indices]
-        
-        plt.figure(figsize=(10, 6))
-        plt.barh(range(len(top_features)), top_importances)
-        plt.yticks(range(len(top_features)), top_features)
-        plt.xlabel('Importance')
-        plt.title(f'Top {top_n} Feature Importances')
-        plt.tight_layout()
-        plt.savefig(save_path)
-        plt.close()
-        print(f"Feature importance сохранена: {save_path}")
 
 def train_model():
     params = load_params()
@@ -62,83 +48,96 @@ def train_model():
     test_df = pd.read_csv("data/processed/test.csv")
     
     X_train = train_df['text']
-    y_train = train_df['category']
+    y_train = train_df['label']
     X_test = test_df['text']
-    y_test = test_df['category']
-    
-    labels = sorted(y_train.unique())
+    y_test = test_df['label']
     
     print(f"Train: {len(X_train)}, Test: {len(X_test)}")
-    print(f"Категории: {labels}")
+    print(f"Распределение классов в train: {y_train.value_counts().to_dict()}")
+    print(f"Распределение классов в test: {y_test.value_counts().to_dict()}")
     
     with mlflow.start_run():
         print("\nОбучение модели...")
         
-        pipeline = Pipeline([
-            ('tfidf', TfidfVectorizer(
-                max_features=5000,
-                ngram_range=(1, 2),
-                min_df=2,
-                max_df=0.95
-            )),
-            ('clf', RandomForestClassifier(
+        if params["model_type"] == "RandomForestClassifier":
+            classifier = RandomForestClassifier(
                 n_estimators=params["n_estimators"],
                 max_depth=params["max_depth"],
                 random_state=params["random_state"],
-                max_features=params["max_features"],
-                n_jobs=-1
-            ))
+                max_features=params.get("max_features", "sqrt"),
+                n_jobs=-1,
+                verbose=1
+            )
+        elif params["model_type"] == "LogisticRegression":
+            classifier = LogisticRegression(
+                max_iter=params.get("max_iter", 1000),
+                random_state=params["random_state"],
+                n_jobs=-1,
+                verbose=1
+            )
+        else:
+            raise ValueError(f"Неизвестный тип модели: {params['model_type']}")
+        
+        pipeline = Pipeline([
+            ('tfidf', TfidfVectorizer(
+                max_features=params.get("tfidf_max_features", 5000),
+                ngram_range=params.get("ngram_range", (1, 2)),
+                min_df=params.get("min_df", 2),
+                max_df=params.get("max_df", 0.8)
+            )),
+            ('clf', classifier)
         ])
         
         pipeline.fit(X_train, y_train)
         
-        y_pred = pipeline.predict(X_test)
+        y_pred_train = pipeline.predict(X_train)
+        y_pred_test = pipeline.predict(X_test)
         
-        accuracy = accuracy_score(y_test, y_pred)
-        precision = precision_score(y_test, y_pred, average='weighted', zero_division=0)
-        recall = recall_score(y_test, y_pred, average='weighted', zero_division=0)
-        f1 = f1_score(y_test, y_pred, average='weighted', zero_division=0)
+        accuracy_train = accuracy_score(y_train, y_pred_train)
+        accuracy_test = accuracy_score(y_test, y_pred_test)
         
-        print(f"\nМетрики:")
-        print(f"  Accuracy:  {accuracy:.4f}")
+        precision = precision_score(y_test, y_pred_test, average='weighted', zero_division=0)
+        recall = recall_score(y_test, y_pred_test, average='weighted', zero_division=0)
+        f1 = f1_score(y_test, y_pred_test, average='weighted', zero_division=0)
+        
+        print(f"\nМетрики на Train:")
+        print(f"  Accuracy:  {accuracy_train:.4f}")
+        
+        print(f"\nМетрики на Test:")
+        print(f"  Accuracy:  {accuracy_test:.4f}")
         print(f"  Precision: {precision:.4f}")
         print(f"  Recall:    {recall:.4f}")
         print(f"  F1-score:  {f1:.4f}")
         
         print("\nClassification Report:")
-        print(classification_report(y_test, y_pred, target_names=labels))
+        print(classification_report(y_test, y_pred_test, zero_division=0))
         
         mlflow.log_param("model_type", params["model_type"])
-        mlflow.log_param("n_estimators", params["n_estimators"])
-        mlflow.log_param("max_depth", params["max_depth"])
-        mlflow.log_param("max_features", params["max_features"])
+        mlflow.log_param("n_estimators", params.get("n_estimators", "N/A"))
+        mlflow.log_param("max_depth", params.get("max_depth", "N/A"))
+        mlflow.log_param("max_features", params.get("max_features", "N/A"))
         mlflow.log_param("random_state", params["random_state"])
-        mlflow.log_param("num_categories", len(labels))
+        mlflow.log_param("tfidf_max_features", params.get("tfidf_max_features", 5000))
         
-        mlflow.log_metric("accuracy", accuracy)
+        mlflow.log_metric("accuracy_train", accuracy_train)
+        mlflow.log_metric("accuracy_test", accuracy_test)
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
         mlflow.log_metric("f1_score", f1)
         
         os.makedirs("models", exist_ok=True)
-        os.makedirs("models/plots", exist_ok=True)
-        
-        cm_path = "models/plots/confusion_matrix.png"
-        plot_confusion_matrix(y_test, y_pred, labels, cm_path)
-        mlflow.log_artifact(cm_path, artifact_path="plots")
-        
-        fi_path = "models/plots/feature_importance.png"
-        plot_feature_importance(pipeline, fi_path)
-        mlflow.log_artifact(fi_path, artifact_path="plots")
-        
         model_path = "models/model.pkl"
         joblib.dump(pipeline, model_path)
         
+        cm_path = "models/confusion_matrix.png"
+        plot_confusion_matrix(y_test, y_pred_test, cm_path)
+        
         mlflow.sklearn.log_model(pipeline, "model")
         mlflow.log_artifact(model_path)
+        mlflow.log_artifact(cm_path)
         
         print(f"\nМодель сохранена: {model_path}")
-        print(f"Визуализации сохранены в: models/plots/")
+        print(f"Артефакты залогированы в MLflow")
 
 if __name__ == "__main__":
     train_model()
