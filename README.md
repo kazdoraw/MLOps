@@ -3,10 +3,22 @@
 [![GitHub](https://img.shields.io/badge/GitHub-MLOps-blue?logo=github)](https://github.com/kazdoraw/MLOps)
 [![DVC](https://img.shields.io/badge/DVC-Data%20Version%20Control-945DD6?logo=dvc)](https://dvc.org)
 [![MLflow](https://img.shields.io/badge/MLflow-Experiment%20Tracking-0194E2?logo=mlflow)](https://mlflow.org)
+[![Python](https://img.shields.io/badge/Python-3.8+-blue?logo=python)](https://www.python.org/)
 
-## 🔗 Репозиторий
+## Репозиторий
 
 **GitHub**: https://github.com/kazdoraw/MLOps.git
+
+## Быстрый старт
+
+```bash
+git clone https://github.com/kazdoraw/MLOps.git
+cd MLOps/HW1
+pip install -r requirements.txt
+jupyter notebook hw1_final.ipynb
+```
+
+Подробная инструкция: **[INSTALL.md](INSTALL.md)**
 
 ## Цель проекта
 
@@ -38,36 +50,39 @@ HW1/
 
 ## Как запустить
 
-### Вариант 1: Клонирование из GitHub
+### Вариант 1: Jupyter Notebook (рекомендуется)
 
 ```bash
-# Клонировать репозиторий
 git clone https://github.com/kazdoraw/MLOps.git
 cd MLOps/HW1
-
-# Установить зависимости
 pip install -r requirements.txt
-
-# Загрузить данные из DVC remote (если настроен)
-dvc pull
-
-# Запустить пайплайн обучения
-dvc repro
-
-# Запустить MLflow UI
-mlflow ui --backend-store-uri sqlite:///mlflow.db
+jupyter notebook hw1_final.ipynb
 ```
 
-Откройте браузер: http://127.0.0.1:5000
+Выполните ячейки последовательно - notebook автоматически:
+- Загрузит данные из Kaggle
+- Инициализирует DVC
+- Выполнит предобработку
+- Обучит модель
+- Залогирует результаты в MLflow
 
-### Вариант 2: Локальная разработка (Jupyter Notebook)
+### Вариант 2: DVC Pipeline
 
 ```bash
-# Откройте hw1.ipynb и выполните ячейки последовательно
-jupyter notebook hw1.ipynb
+git clone https://github.com/kazdoraw/MLOps.git
+cd MLOps/HW1
+pip install -r requirements.txt
+
+# После загрузки данных через notebook:
+dvc repro
+
+# Запуск MLflow UI
+./start_mlflow.sh
 ```
 
-См. подробные инструкции в **[QUICKSTART.md](QUICKSTART.md)**
+Откройте браузер: **http://127.0.0.1:5001**
+
+**Полная документация**: [INSTALL.md](INSTALL.md) | [QUICKSTART.md](QUICKSTART.md)
 
 ## Описание пайплайна
 
@@ -101,10 +116,44 @@ jupyter notebook hw1.ipynb
 
 ## MLflow UI
 
-После запуска `mlflow ui` интерфейс доступен по адресу:
-- http://127.0.0.1:5000
+```bash
+./start_mlflow.sh
+# или
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
+```
 
-В UI можно увидеть:
-- Параметры модели
-- Метрики качества
-- Артефакты (модели, графики)
+Интерфейс доступен: **http://127.0.0.1:5001**
+
+В UI вы увидите:
+- Все запуски экспериментов с параметрами
+- Метрики качества (accuracy, precision, recall, f1-score)
+- Метрики для класса 1 (офлайн-визит)
+- Артефакты (confusion matrix, модели)
+- Сравнение экспериментов
+
+## Результаты
+
+С использованием `class_weight='balanced'` для обработки дисбаланса классов:
+
+| Метрика | Класс 0 | Класс 1 (офлайн-визит) |
+|---------|---------|------------------------|
+| Precision | 0.97 | 0.86 |
+| Recall | 0.99 | 0.66 |
+| F1-score | 0.98 | 0.75 |
+
+**Общая accuracy**: 96.7%
+
+Распределение классов:
+- Train: 36,985 (класс 0) / 3,015 (класс 1)
+- Test: 9,246 (класс 0) / 754 (класс 1)
+
+## Документация
+
+- **[INSTALL.md](INSTALL.md)** - Полная инструкция по установке и настройке
+- **[QUICKSTART.md](QUICKSTART.md)** - Краткое руководство
+- **[MLFLOW_GUIDE.md](MLFLOW_GUIDE.md)** - Работа с MLflow
+- **[hw1.md](hw1.md)** - Описание задания
+
+## Лицензия
+
+MIT License

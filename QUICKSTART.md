@@ -36,11 +36,13 @@ pip install -r requirements.txt
 В терминале выполните:
 
 ```bash
-cd /Users/Shared/ml/DEPLOY/HW1
-mlflow ui --backend-store-uri sqlite:///mlflow.db
+cd HW1
+./start_mlflow.sh
+# или
+mlflow ui --backend-store-uri sqlite:///mlflow.db --port 5001
 ```
 
-Откройте браузер: http://127.0.0.1:5000
+Откройте браузер: **http://127.0.0.1:5001**
 
 ## Шаг 3: Проверка воспроизводимости
 

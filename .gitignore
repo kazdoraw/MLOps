@@ -1,12 +1,21 @@
-# DVC
+# DVC - игнорируем данные и кэш
 /data/raw/*
+!/data/raw/.gitkeep
 /data/processed/*
+!/data/processed/.gitkeep
 /models/*
+!/models/.gitkeep
 .dvc/cache
+.dvc/tmp
 
-# MLflow
+# MLflow - игнорируем логи и БД
 mlruns/
 mlflow.db
+mlflow.db-shm
+mlflow.db-wal
+
+# Environment
+.env
 
 # Python
 __pycache__/

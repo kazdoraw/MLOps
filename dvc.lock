@@ -3,14 +3,14 @@ stages:
   prepare:
     cmd: python src/prepare.py
     deps:
-    - path: data/raw/chatdoctor.json
+    - path: data/raw/chatdoctor.csv
       hash: md5
-      md5: a5adbdfc4c1098a0225f86397dc477dc
-      size: 143845222
+      md5: 50ef8990148412d72cd41d7b0b4e557b
+      size: 252693970
     - path: src/prepare.py
       hash: md5
-      md5: 6a1fdfb946384157b750bdc8b627581e
-      size: 3278
+      md5: 0375f0aa0d805ed76fd08f2825edec99
+      size: 5045
     params:
       params.yaml:
         prepare.random_state: 42
@@ -19,12 +19,12 @@ stages:
     outs:
     - path: data/processed/test.csv
       hash: md5
-      md5: d83dbee846cff92f7bf73605333c8704
-      size: 895092
+      md5: 7df25115ac625e22b3ec6c0d35287c3f
+      size: 2159925
     - path: data/processed/train.csv
       hash: md5
-      md5: 359ada4eb3f7dadbaa9ef302dfb663fc
-      size: 3554298
+      md5: ecab8004c69f8bd5874c0bfb0c440f06
+      size: 8624665
   train:
     cmd: python src/train.py
     deps:

@@ -65,6 +65,7 @@ def train_model():
                 max_depth=params["max_depth"],
                 random_state=params["random_state"],
                 max_features=params.get("max_features", "sqrt"),
+                class_weight='balanced',  # Балансировка классов!
                 n_jobs=-1,
                 verbose=1
             )
@@ -72,16 +73,22 @@ def train_model():
             classifier = LogisticRegression(
                 max_iter=params.get("max_iter", 1000),
                 random_state=params["random_state"],
+                class_weight='balanced',  # Балансировка классов!
                 n_jobs=-1,
                 verbose=1
             )
         else:
             raise ValueError(f"Неизвестный тип модели: {params['model_type']}")
         
+        # Конвертируем ngram_range из списка в tuple
+        ngram_range = params.get("ngram_range", [1, 2])
+        if isinstance(ngram_range, list):
+            ngram_range = tuple(ngram_range)
+        
         pipeline = Pipeline([
             ('tfidf', TfidfVectorizer(
                 max_features=params.get("tfidf_max_features", 5000),
-                ngram_range=params.get("ngram_range", (1, 2)),
+                ngram_range=ngram_range,
                 min_df=params.get("min_df", 2),
                 max_df=params.get("max_df", 0.8)
             )),
@@ -100,14 +107,24 @@ def train_model():
         recall = recall_score(y_test, y_pred_test, average='weighted', zero_division=0)
         f1 = f1_score(y_test, y_pred_test, average='weighted', zero_division=0)
         
+        # Метрики для каждого класса
+        precision_per_class = precision_score(y_test, y_pred_test, average=None, zero_division=0)
+        recall_per_class = recall_score(y_test, y_pred_test, average=None, zero_division=0)
+        f1_per_class = f1_score(y_test, y_pred_test, average=None, zero_division=0)
+        
         print(f"\nМетрики на Train:")
         print(f"  Accuracy:  {accuracy_train:.4f}")
         
         print(f"\nМетрики на Test:")
         print(f"  Accuracy:  {accuracy_test:.4f}")
-        print(f"  Precision: {precision:.4f}")
-        print(f"  Recall:    {recall:.4f}")
-        print(f"  F1-score:  {f1:.4f}")
+        print(f"  Precision (weighted): {precision:.4f}")
+        print(f"  Recall (weighted):    {recall:.4f}")
+        print(f"  F1-score (weighted):  {f1:.4f}")
+        
+        print(f"\nМетрики для класса 1 (офлайн визит):")
+        print(f"  Precision: {precision_per_class[1]:.4f}")
+        print(f"  Recall:    {recall_per_class[1]:.4f}")
+        print(f"  F1-score:  {f1_per_class[1]:.4f}")
         
         print("\nClassification Report:")
         print(classification_report(y_test, y_pred_test, zero_division=0))
@@ -124,6 +141,11 @@ def train_model():
         mlflow.log_metric("precision", precision)
         mlflow.log_metric("recall", recall)
         mlflow.log_metric("f1_score", f1)
+        
+        # Метрики для класса 1 (важные!)
+        mlflow.log_metric("precision_class_1", precision_per_class[1])
+        mlflow.log_metric("recall_class_1", recall_per_class[1])
+        mlflow.log_metric("f1_score_class_1", f1_per_class[1])
         
         os.makedirs("models", exist_ok=True)
         model_path = "models/model.pkl"
