@@ -1,0 +1,28 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/raw/chatdoctor.json
+    params:
+      - prepare.test_size
+      - prepare.random_state
+      - prepare.sample_size
+    outs:
+      - data/processed/train.csv
+      - data/processed/test.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/processed/train.csv
+      - data/processed/test.csv
+    params:
+      - train.model_type
+      - train.n_estimators
+      - train.max_depth
+      - train.random_state
+      - train.max_features
+    outs:
+      - models/model.pkl

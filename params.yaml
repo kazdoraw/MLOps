@@ -1,0 +1,11 @@
+prepare:
+  test_size: 0.2
+  random_state: 42
+  sample_size: 10000
+
+train:
+  model_type: "RandomForestClassifier"
+  n_estimators: 100
+  max_depth: 10
+  random_state: 42
+  max_features: "sqrt"

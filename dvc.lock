@@ -1,0 +1,54 @@
+schema: '2.0'
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+    - path: data/raw/chatdoctor.json
+      hash: md5
+      md5: a5adbdfc4c1098a0225f86397dc477dc
+      size: 143845222
+    - path: src/prepare.py
+      hash: md5
+      md5: 6a1fdfb946384157b750bdc8b627581e
+      size: 3278
+    params:
+      params.yaml:
+        prepare.random_state: 42
+        prepare.sample_size: 10000
+        prepare.test_size: 0.2
+    outs:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: d83dbee846cff92f7bf73605333c8704
+      size: 895092
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 359ada4eb3f7dadbaa9ef302dfb663fc
+      size: 3554298
+  train:
+    cmd: python src/train.py
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: d83dbee846cff92f7bf73605333c8704
+      size: 895092
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 359ada4eb3f7dadbaa9ef302dfb663fc
+      size: 3554298
+    - path: src/train.py
+      hash: md5
+      md5: f8560006a14036db123a10895e187e96
+      size: 5295
+    params:
+      params.yaml:
+        train.max_depth: 10
+        train.max_features: sqrt
+        train.model_type: RandomForestClassifier
+        train.n_estimators: 100
+        train.random_state: 42
+    outs:
+    - path: models/model.pkl
+      hash: md5
+      md5: 4983a596b8c814760a35ea06f383c354
+      size: 2175157
