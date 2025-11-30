@@ -3,7 +3,7 @@ stages:
     cmd: python src/prepare.py
     deps:
       - src/prepare.py
-      - data/raw/chatdoctor.json
+      - data/raw/chatdoctor.csv
     params:
       - prepare.test_size
       - prepare.random_state
