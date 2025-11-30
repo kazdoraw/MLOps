@@ -1,5 +1,17 @@
 # Быстрый старт
 
+## 🔗 Репозиторий GitHub
+
+Проект доступен по адресу: **https://github.com/kazdoraw/MLOps.git**
+
+## Клонирование проекта (для новых пользователей)
+
+```bash
+git clone https://github.com/kazdoraw/MLOps.git
+cd MLOps/HW1
+pip install -r requirements.txt
+```
+
 ## Структура готова!
 
 Все файлы созданы и настроены. Теперь выполните шаги последовательно:
@@ -67,7 +79,21 @@ MLflow автоматически залогирует новый экспери
 
 ## Следующие шаги
 
-1. Создайте GitHub репозиторий
-2. Push код: `git remote add origin https://github.com/kazdoraw/MLOps.git && git push -u origin main`
-3. Настройте удаленное DVC хранилище (S3/GCS)
-4. Добавьте в README результаты экспериментов
+1. ✅ Проект на GitHub: https://github.com/kazdoraw/MLOps.git
+2. Настройте удаленное DVC хранилище (S3/GCS/SSH):
+   ```bash
+   # Пример для S3
+   dvc remote add -d s3remote s3://mybucket/dvcstore
+   dvc push
+   ```
+3. Экспериментируйте с параметрами в `params.yaml`
+4. Добавьте результаты экспериментов в README
+5. Создайте ветки для разных экспериментов:
+   ```bash
+   git checkout -b experiment/logreg
+   # Измените model_type в params.yaml на LogisticRegression
+   dvc repro
+   git add params.yaml dvc.lock
+   git commit -m "Experiment: LogisticRegression"
+   git push origin experiment/logreg
+   ```
